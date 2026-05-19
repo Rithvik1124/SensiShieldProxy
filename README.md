@@ -213,6 +213,18 @@ Install the certificate on the client device/browser.
 * Large scanned PDFs may increase OCR latency
 * Windows endpoint enforcement is not implemented yet
 
+# What's left to do
+* Fix the decision making from simple heuristic detection
+* Include stamp detection
+* Include random sampling for larger documents & max size blocking
+* Structured logging - current logs suck
+* Minor polishing of code
+  
+
+# Optional
+* Implement HTTPS between components, Redis safety, memory abuse
+* API auth
+
 ---
 Feedbacks are appreciated!
 
