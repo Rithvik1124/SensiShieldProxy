@@ -1,4 +1,5 @@
 #dlpProxy.py
+print("DLP PROXY FILE LOADED")
 from mitmproxy import http
 import requests
 import json
@@ -69,26 +70,45 @@ def block_response(flow, reason):
 
 #Check content and block logic for OpenAI uploads
 def handle_openai_upload(flow):
+    log("OPENAI HANDLER ENTERED")
+
+    log(f"RAW CONTENT EXISTS: {flow.request.raw_content is not None}")
+
+    if flow.request.raw_content:
+        log(f"RAW CONTENT LENGTH: {len(flow.request.raw_content)}")
+    else:
+        log("NO RAW CONTENT")
+
     content = flow.request.raw_content
-    if flow.response:
-        return
+
     if not content:
         return
+
     if not content.startswith(b"%PDF"):
         log("Skipping non-PDF OpenAI upload")
         return
+
     log(f"OPENAI PDF: {len(content)}")
+
     files = {
         "file": ("upload.pdf", content)
     }
+
     response = requests.post(
         OPENAI_FILE_API,
         files=files,
         timeout=90
     )
+
+    log(f"STATUS: {response.status_code}")
+    log(f"RAW RESPONSE: {response.text}")
+
     decision = response.json().get("decision")
+
     log(f"OPENAI FILE DECISION: {decision}")
+
     if decision == "block":
+        log("BLOCKING OPENAI UPLOAD")
         block_response(
             flow,
             "Blocked: Sensitive OpenAI upload"
@@ -286,6 +306,10 @@ def extract_perplexity_prompt(data):
 
 # MAIN ENTRY
 def request(flow: http.HTTPFlow):
+    log("REQUEST FUNCTION HIT")
+    log(f"HOST: {flow.request.pretty_host}")
+    log(f"METHOD: {flow.request.method}")
+    log(f"PATH: {flow.request.path}")
     try:
         host = flow.request.pretty_host
         path = flow.request.path

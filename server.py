@@ -2,7 +2,7 @@ from fastapi import FastAPI, UploadFile, File
 import hashlib
 from redisCache import cache_result, get_cached_result
 from presidio_analyzer import AnalyzerEngine
-from extractTextFromPDF import extract_text_hybrid
+from extractTextFromPDF import extract_text_hybrid, score_legal_text
 from dlpProxy import log
 import fitz
 import tempfile
@@ -46,13 +46,27 @@ def make_decision(results):
 
 def scan_text_content(text):
 
-    results = detect_pii(text)
+    legal_score = score_legal_text(text)
 
-    decision = make_decision(results)
+
+    pii_results = detect_pii(text)
+
+    decision = "allow"
+
+    if legal_score >= 1.2:
+        decision = "block"
+    log(f"LEGAL SCORE: {legal_score}")
+
+    for r in pii_results:
+        if r.score > 0.85:
+            decision = "block"
+            break
+    log(f"PII COUNT: {len(pii_results)}")
 
     return {
         "decision": decision,
-        "entities": [r.entity_type for r in results]
+        "entities": [r.entity_type for r in pii_results],
+        "legal_score": legal_score
     }
 
 
@@ -125,7 +139,8 @@ async def process_uploaded_file(file: UploadFile):
             )
         text = "\n".join(pages)
         result = scan_text_content(text)
-        cache_result(file_hash, result)
+        if result["decision"] != "error":
+            cache_result(file_hash, result)
         log("RESULT CACHED")
         return result
 
