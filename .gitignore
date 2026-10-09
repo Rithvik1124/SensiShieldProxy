@@ -3,3 +3,6 @@
 /sensitive
 /tessdata
 /venv
+/target
+/tessdata
+/build
